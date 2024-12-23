@@ -1,6 +1,7 @@
 import debug from 'debug';
-import { sync as globSync } from 'fast-glob';
 import isGlob from 'is-glob';
+import { globSync } from 'node:fs';
+import { matchesGlob } from 'node:path';
 
 import type { CanonicalPath } from '../create-program/shared';
 import type { TSESTreeOptions } from '../parser-options';
@@ -92,13 +93,11 @@ export function resolveProjectList(
   let globProjectPaths: string[] = [];
 
   if (globProjects.length > 0) {
-    // Although fast-glob supports multiple patterns, fast-glob returns arbitrary order of results
-    // to improve performance. To ensure the order is correct, we need to call fast-glob for each pattern
-    // separately and then concatenate the results in patterns' order.
     globProjectPaths = globProjects.flatMap(pattern =>
       globSync(pattern, {
         cwd: options.tsconfigRootDir,
-        ignore: projectFolderIgnoreList,
+        exclude: (fileName: string) =>
+          projectFolderIgnoreList.some(ignore => matchesGlob(fileName, ignore)),
       }),
     );
   }
